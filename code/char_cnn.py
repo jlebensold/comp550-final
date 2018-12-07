@@ -1,11 +1,37 @@
 # -*- coding: utf-8 -*-
 """
+Original network described in 
+
+Network from https://github.com/1991viet/Character-level-cnn-pytorch 
+(MIT License)
 @author: Viet Nguyen <nhviet1009@gmail.com>
 """
 import torch.nn as nn
-
-
+import torch
 class CharacterLevelCNN(nn.Module):
+
+    def update_weights(self, averaged_weights):
+        """ here we initialize the weights from a custom dictionary """
+        self.conv1[0].weight = averaged_weights['conv1.0.weight']
+        self.conv1[0].bias = averaged_weights['conv1.0.bias']
+        self.conv2[0].weight = averaged_weights['conv2.0.weight']
+        self.conv2[0].bias = averaged_weights['conv2.0.bias']
+        self.conv3[0].weight = averaged_weights['conv3.0.weight']
+        self.conv3[0].bias = averaged_weights['conv3.0.bias']
+        self.conv4[0].weight = averaged_weights['conv4.0.weight']
+        self.conv4[0].bias = averaged_weights['conv4.0.bias']
+        self.conv5[0].weight = averaged_weights['conv5.0.weight']
+        self.conv5[0].bias = averaged_weights['conv5.0.bias']
+        self.conv6[0].weight = averaged_weights['conv6.0.weight']
+        self.conv6[0].bias = averaged_weights['conv6.0.bias']
+        self.fc1[0].weight = averaged_weights['fc1.0.weight']
+        self.fc1[0].bias = averaged_weights['fc1.0.bias']
+        self.fc2[0].weight = averaged_weights['fc2.0.weight']
+        self.fc2[0].bias = averaged_weights['fc2.0.bias']
+        self.fc3.weight = averaged_weights['fc3.weight']
+        self.fc3.bias= averaged_weights['fc3.bias']
+
+
     def __init__(self, n_classes=14, input_length=1014, input_dim=68,
                  n_conv_filters=256,
                  n_fc_neurons=1024):

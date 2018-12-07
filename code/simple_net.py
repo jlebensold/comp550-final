@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 class SimpleNet(nn.Module):
     def __init__(self):
         super(SimpleNet, self).__init__()
-        self.conv1 = nn.Conv1d(69, 256, kernel_size=7, padding=0, stride=1)
+        self.conv1 = nn.Conv1d(69, 1014, kernel_size=7, padding=0, stride=1)
         self.fc1 = nn.Linear(256, 14)
 
     def forward(self, x):

@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import TensorDataset, DataLoader
-
+import numpy as np
 
 # for development, we arbitrarily limit the size of our dataset
 DEFAULT_COUNT_FILTER = 2000
@@ -30,18 +30,16 @@ def build_embedding_set(dataset, categories, size):
     ys = []
     # we filter out categories because this turkey takes forever:
     category_count = {}
-    for idx, rec in enumerate(dataset):
-        if rec['category'] in categories:
-            x = rec['abstract']
-            y = rec['category']
-            if y not in category_count.keys():
-                category_count[y] = 0
-            if category_count[y] > size:
-                continue
 
-            category_count[y] += 1
-            xs.append(x)
-            ys.append(y)
+    valid_indexes = [idx for idx,rec in enumerate(dataset) if rec['category'] in categories]
+
+    indexes = np.random.choice(valid_indexes, size, replace=False)
+    for idx in indexes:
+        rec = dataset[idx]
+        x = rec['abstract']
+        y = rec['category']
+        xs.append(x)
+        ys.append(y)
     return xs, ys
 
 def data_from_pickle():

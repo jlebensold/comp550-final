@@ -3,10 +3,10 @@ import numpy as np
 import torch
 
 ROUNDS = 10
-EPOCHS = 1
+EPOCHS = 2
 CATEGORIES = ['EducationalInstitution', 'Artist', 'Company']
 TEST_SET_SIZE_PER_CLASS = 1_000
-WORKER_SET_SIZE_PER_CLASS = 10_000
+WORKER_SET_SIZE_PER_CLASS = 2_000
 
 class Federator:
     def __init__(self, workers, optimizer_factory, model_factory):
@@ -45,6 +45,7 @@ class Federator:
             # average the weights across the models
             averaged = torch.stack(weights).mean(0)
             averaged_weights[key] = torch.nn.Parameter(averaged)
+
 
         def new_model_factory():
             averaged_model = self.model_factory()

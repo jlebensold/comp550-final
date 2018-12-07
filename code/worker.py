@@ -9,12 +9,16 @@ class Worker:
         self.name = name
         self.optimizer = optimizer
         self.model = model
+        self.current_model_weights = {}
 
-    def train_communication_round(self, train_loader, epoch):
+    def train_communication_round(self, train_loader, comm_round):
+        self.store_model_weights()
         total_loss = 0
         total_size = 0
         criterion = nn.CrossEntropyLoss()
+
         self.model.train()
+
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = Variable(data).cuda(), Variable(target).cuda()
             self.optimizer.zero_grad()
@@ -23,16 +27,31 @@ class Worker:
             loss.backward()
             self.optimizer.step()
             if batch_idx % 10 == 0:
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch,
+                print('Train Comm Round: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    comm_round,
                     batch_idx * len(data),
                     len(train_loader.dataset),
                     100. * batch_idx / len(train_loader),
                     loss.item())
                 )
+        self.update_params_delta()
+
+    def store_model_weights(self):
+        for name, param in self.model.named_parameters():
+            # TODO: check if this constraint is required:
+            if param.requires_grad:
+                self.current_model_weights[name] = param.data.detach()
 
 
-    def valid_epoch(self, test_loader, epoch):
+    def update_params_delta(self):
+        """ subtract the current model parameters from the updated model parameters"""
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                if name in self.current_model_weights.keys():
+                   self.current_model_weights[name] =  param.data - self.current_model_weights[name]
+
+
+    def valid_comm_round(self, test_loader, comm_round):
         self.model.eval()
         test_loss = 0
         correct = 0

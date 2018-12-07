@@ -14,22 +14,6 @@ from federator import Federator
 from worker import Worker
 import time
 
-def perform_training():
-    """ train and evaluate model performance """
-    train_loader = build_train_loader()
-    test_loader = build_test_loader()
-    model = CharacterLevelCNN()
-    model = model.cuda()
-
-
-    learning_rate = 0.001
-    epochs =  10
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-
-    for epoch in range(1, epochs + 1):
-        train_epoch(model, train_loader, optimizer, epoch)
-        valid_epoch(model, valid_loader, epoch)
-
 def perform_federated_training():
     def optimizer_factory(model):
         return optim.SGD(model.parameters(), lr=0.001, momentum=0.9)

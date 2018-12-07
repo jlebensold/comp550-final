@@ -18,14 +18,13 @@ class Federator:
         self.model = model_factory()
 
     def train_rounds(self):
-        # TODO make sure the training set is not in the test set
         test_set = build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
+
+
         for comm_round in np.arange(0, ROUNDS):
             for idx, worker in enumerate(self.workers):
-                worker.train_communication_round(build_train_loader(
-                    train_categories=CATEGORIES,
-                    size=WORKER_SET_SIZE_PER_CLASS),
-                comm_round)
+                train_loader = build_train_loader(train_categories=CATEGORIES, size=WORKER_SET_SIZE_PER_CLASS)
+                worker.train_communication_round(train_loader, comm_round)
                 worker.valid_comm_round(test_set, comm_round)
 
             new_model = self.average_worker_models()
@@ -50,7 +49,6 @@ class Federator:
 
         def new_model_factory():
             with torch.no_grad():
-#                averaged_model = self.model_factory()
                 self.model.update_weights(averaged_weights)
             return self.model
         return new_model_factory

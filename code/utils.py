@@ -29,10 +29,7 @@ def build_embedding_set(dataset, categories, size):
     xs = []
     ys = []
     # we filter out categories because this turkey takes forever:
-    category_count = {}
-
     valid_indexes = [idx for idx,rec in enumerate(dataset) if rec['category'] in categories]
-
     indexes = np.random.choice(valid_indexes, size, replace=False)
     for idx in indexes:
         rec = dataset[idx]

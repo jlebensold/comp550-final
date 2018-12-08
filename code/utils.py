@@ -25,14 +25,18 @@ def load_struct(filename):
     return struct
 
 def iteration_number(epoch, loader, batch_idx):
-    """ calculate iteration number """        
-    return (epoch * len(loader)) + batch_idx  
+    """ calculate iteration number """
+    return (epoch * len(loader)) + batch_idx
 
-def build_embedding_set(dataset, categories, size):
+def build_embedding_set(dataset, categories, size, exclude_ids=[]):
     xs = []
     ys = []
     # we filter out categories because this turkey takes forever:
     valid_indexes = [idx for idx,rec in enumerate(dataset) if rec['category'] in categories]
+
+    # we further filter (without replacement):
+    valid_indexes = [idx for idx in valid_indexes if idx not in exclude_ids]
+
     indexes = np.random.choice(valid_indexes, size, replace=False)
     for idx in indexes:
         rec = dataset[idx]
@@ -40,7 +44,7 @@ def build_embedding_set(dataset, categories, size):
         y = rec['category']
         xs.append(x)
         ys.append(y)
-    return xs, ys
+    return xs, ys, indexes
 
 def data_from_pickle():
     dbpedia = load_struct('data/train_test.pickle')
@@ -50,15 +54,15 @@ def data_from_pickle():
 
 def build_test_loader(test_categories=DEFAULT_CATEGORIES, size=DEFAULT_COUNT_FILTER):
     data, categories = data_from_pickle()
-    xs_test, y_test = build_embedding_set(data['test'], test_categories, size)
+    xs_test, y_test, indexes = build_embedding_set(data['test'], test_categories, size)
     dataset_test = CharacterDataset(xs_test, y_test, all_labels=categories)
-    return torch.utils.data.DataLoader(dataset=dataset_test, **DL_ARGS)
+    return torch.utils.data.DataLoader(dataset=dataset_test, **DL_ARGS), indexes
 
-def build_train_loader(train_categories=DEFAULT_CATEGORIES, size=DEFAULT_COUNT_FILTER):
+def build_train_loader(train_categories=DEFAULT_CATEGORIES, size=DEFAULT_COUNT_FILTER, exclude_ids=[]):
     data, categories = data_from_pickle()
-    xs_train, y_train = build_embedding_set(data['train'], train_categories, size)
+    xs_train, y_train, indexes = build_embedding_set(data['train'], train_categories, size, exclude_ids)
     dataset_train = CharacterDataset(xs_train, y_train, all_labels=categories)
-    return torch.utils.data.DataLoader(dataset=dataset_train, **DL_ARGS)
+    return torch.utils.data.DataLoader(dataset=dataset_train, **DL_ARGS), indexes
 
 
 def train_epoch(model, train_loader, optimizer, epoch):

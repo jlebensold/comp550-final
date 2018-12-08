@@ -11,9 +11,9 @@ from datetime import datetime
 import threading
 
 ROUNDS = 10
-CATEGORIES = ['EducationalInstitution', 'Artist']
+CATEGORIES = ['EducationalInstitution', 'Artist', 'Company', 'MeanOfTransportation', 'OfficeHolder']
 TEST_SET_SIZE_PER_CLASS = 1_000
-WORKER_SET_SIZE_PER_CLASS = 2_000
+WORKER_SET_SIZE_PER_CLASS = 2_500
 
 class Federator:
     def __init__(self, workers, optimizer_factory, model_factory, experiment="Undefined"):
@@ -28,29 +28,21 @@ class Federator:
         self.writer = SummaryWriter('../training_logs/{}/{}'.format("Federator", time))
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    def train_rounds(self):
-        test_set = build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
-        def thread_script(worker, comm_round):
-            train_loader = build_train_loader(train_categories=CATEGORIES, size=WORKER_SET_SIZE_PER_CLASS)
-            worker.train_communication_round(train_loader, comm_round)
-            worker.valid_comm_round(test_set, comm_round)
+    def train_rounds(self, with_replacement, classes_per_worker, same_initilization):
+        test_set, indexes= build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
+
 
         for comm_round in np.arange(0, ROUNDS):
-            # Single Thread
+            exclude_ids = []
             for idx, worker in enumerate(self.workers):
-               thread_script(worker, comm_round)
+                train_categories = np.random.choice(CATEGORIES, classes_per_worker, replace=False)
+                train_loader, indexes = build_train_loader(train_categories, WORKER_SET_SIZE_PER_CLASS, exclude_ids)
+                worker.train_communication_round(train_loader, comm_round)
+                worker.valid_comm_round(test_set, comm_round)
 
-            # Multi Threads (Acc drops)
-            # threads = []
-            # for idx, worker in enumerate(self.workers):
-            #     t = threading.Thread(target=thread_script, args=(worker,comm_round,))
-            #     threads.append(t)
-            #     t.start()
-            #     print(">> Thread {} started!".format(idx))
-            # for idx, worker in enumerate(self.workers):
-            #     print(">> Waiting for thread {} to finish".format(idx))
-            #     threads[idx].join()
-            
+                if not with_replacement:
+                    exclude_ids = np.concatenate([exclude_ids, indexes])
+
             new_model = self.average_worker_models()
 
             # update the model for the federator 

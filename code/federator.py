@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 from datetime import datetime
+import threading
 
 ROUNDS = 10
 CATEGORIES = ['EducationalInstitution', 'Artist']
@@ -29,16 +30,28 @@ class Federator:
 
     def train_rounds(self):
         test_set = build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
-
+        def thread_script(worker, comm_round):
+            train_loader = build_train_loader(train_categories=CATEGORIES, size=WORKER_SET_SIZE_PER_CLASS)
+            worker.train_communication_round(train_loader, comm_round)
+            worker.valid_comm_round(test_set, comm_round)
 
         for comm_round in np.arange(0, ROUNDS):
+            # Single Thread
             for idx, worker in enumerate(self.workers):
-                train_loader = build_train_loader(train_categories=CATEGORIES, size=WORKER_SET_SIZE_PER_CLASS)
-                worker.train_communication_round(train_loader, comm_round)
-                worker.valid_comm_round(test_set, comm_round)
+               thread_script(worker, comm_round)
 
+            # Multi Threads (Acc drops)
+            # threads = []
+            # for idx, worker in enumerate(self.workers):
+            #     t = threading.Thread(target=thread_script, args=(worker,comm_round,))
+            #     threads.append(t)
+            #     t.start()
+            #     print(">> Thread {} started!".format(idx))
+            # for idx, worker in enumerate(self.workers):
+            #     print(">> Waiting for thread {} to finish".format(idx))
+            #     threads[idx].join()
+            
             new_model = self.average_worker_models()
-
 
             # update the model for the federator 
             self.model = new_model()
@@ -88,6 +101,6 @@ class Federator:
 
         def new_model_factory():
             with torch.no_grad():
-                self.model.update_weights(averaged_weights)
+                self.model.module.update_weights(averaged_weights)
             return self.model
         return new_model_factory

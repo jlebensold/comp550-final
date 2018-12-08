@@ -13,6 +13,7 @@ class Worker:
         self.optimizer = optimizer
         self.model = model
         self.device = torch.device("cuda:{}".format(cuda_num) if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
         self.current_model_weights = {}
         time = datetime.now().strftime("%I_%M%S_{}".format(experiment))
         self.writer = SummaryWriter('../training_logs/{}/{}'.format(self.name, time))

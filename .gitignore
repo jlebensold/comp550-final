@@ -1,0 +1,4 @@
+*.pyc
+*.swp
+code/data/
+training_logs/

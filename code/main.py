@@ -19,7 +19,7 @@ def perform_federated_training():
         return optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
     def model_factory():
-        return CharacterLevelCNN().cuda()
+        return torch.nn.DataParallel(CharacterLevelCNN(), [0,1,2,3]).cuda()
     model1 = model_factory()
     model2 = model_factory()
     model3 = model_factory()
@@ -28,9 +28,9 @@ def perform_federated_training():
     model2.load_state_dict(model1.state_dict())
     model3.load_state_dict(model1.state_dict())
     workers = [
-            Worker(name="Jane", model=model1, optimizer=optimizer_factory(model1)),
-            Worker(name="Sally", model=model2, optimizer=optimizer_factory(model2)),
-            Worker(name="Bob", model=model3, optimizer=optimizer_factory(model3))
+            Worker(name="Jane", cuda_num=0, model=model1, optimizer=optimizer_factory(model1)),
+            Worker(name="Sally", cuda_num=0, model=model2, optimizer=optimizer_factory(model2)),
+            Worker(name="Bob", cuda_num=0, model=model3, optimizer=optimizer_factory(model3))
             ]
     federator = Federator(workers=workers, optimizer_factory=optimizer_factory, model_factory=model_factory)
     federator.train_rounds()

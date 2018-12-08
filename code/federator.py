@@ -10,9 +10,9 @@ from tensorboardX import SummaryWriter
 from datetime import datetime
 
 ROUNDS = 10
-CATEGORIES = ['EducationalInstitution', 'Artist']
+CATEGORIES = ['EducationalInstitution', 'Artist', 'Company', 'MeanOfTransportation', 'OfficeHolder']
 TEST_SET_SIZE_PER_CLASS = 1_000
-WORKER_SET_SIZE_PER_CLASS = 2_000
+WORKER_SET_SIZE_PER_CLASS = 2_500
 
 class Federator:
     def __init__(self, workers, optimizer_factory, model_factory, experiment="Undefined"):
@@ -27,15 +27,20 @@ class Federator:
         self.writer = SummaryWriter('../training_logs/{}/{}'.format("Federator", time))
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    def train_rounds(self):
-        test_set = build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
+    def train_rounds(self, with_replacement, classes_per_worker, same_initilization):
+        test_set, indexes= build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
 
 
         for comm_round in np.arange(0, ROUNDS):
+            exclude_ids = []
             for idx, worker in enumerate(self.workers):
-                train_loader = build_train_loader(train_categories=CATEGORIES, size=WORKER_SET_SIZE_PER_CLASS)
+                train_categories = np.random.choice(CATEGORIES, classes_per_worker, replace=False)
+                train_loader, indexes = build_train_loader(train_categories, WORKER_SET_SIZE_PER_CLASS, exclude_ids)
                 worker.train_communication_round(train_loader, comm_round)
                 worker.valid_comm_round(test_set, comm_round)
+
+                if not with_replacement:
+                    exclude_ids = np.concatenate([exclude_ids, indexes])
 
             new_model = self.average_worker_models()
 

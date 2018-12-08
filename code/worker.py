@@ -2,14 +2,20 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from utils import iteration_number
 from torch.autograd import Variable
+from tensorboardX import SummaryWriter
+from datetime import datetime
 
 class Worker:
-    def __init__(self, name, model, optimizer):
+    def __init__(self, name, model, optimizer, cuda_num="0", experiment="Undefined"):
         self.name = name
         self.optimizer = optimizer
         self.model = model
+        self.device = torch.device("cuda:{}".format(cuda_num) if torch.cuda.is_available() else "cpu")
         self.current_model_weights = {}
+        time = datetime.now().strftime("%I_%M%S_{}".format(experiment))
+        self.writer = SummaryWriter('../training_logs/{}/{}'.format(self.name, time))
 
     def train_communication_round(self, train_loader, comm_round):
         self.store_model_weights()
@@ -20,12 +26,14 @@ class Worker:
         self.model.train()
 
         for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = Variable(data).cuda(), Variable(target).cuda()
+            data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             output = self.model(data)
             loss = criterion(output, target)
             loss.backward()
             self.optimizer.step()
+            self.writer.add_scalar('train/loss', loss.data.item(), 
+                    iteration_number(comm_round, train_loader, batch_idx))
             if batch_idx % 10 == 0:
                 print('Train Comm Round: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     comm_round,
@@ -57,15 +65,18 @@ class Worker:
         correct = 0
         criterion = nn.CrossEntropyLoss()
         with torch.no_grad():
-            for data, target in test_loader:
-                data, target = data.cuda(), target.cuda()
+            for idx, (data, target) in enumerate(test_loader):
+                data, target = data.to(self.device), target.to(self.device)
                 output = self.model(data)
-                test_loss += criterion(output, target).data[0]
+                loss = criterion(output, target) 
+                test_loss += loss.item()
                 pred = output.data.max(1, keepdim=True)[1]
-                correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+                correct += pred.eq(target.data.view_as(pred)).sum().item()
+                self.writer.add_scalar('valid/loss', loss.data.item(),           
+                        iteration_number(comm_round, test_loader, idx))
 
         test_loss /= len(test_loader.dataset)
-        print('\n {}: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            self.name,
-            test_loss, correct, len(test_loader.dataset),
-            100. * correct / len(test_loader.dataset)))
+
+        acc = 100. * correct / len(test_loader.dataset)
+        self.writer.add_scalar('valid/accuracy', acc, (comm_round * len(test_loader)))
+        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct, len(test_loader.dataset), acc))

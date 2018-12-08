@@ -24,6 +24,9 @@ def load_struct(filename):
     file.close()
     return struct
 
+def iteration_number(epoch, loader, batch_idx):
+    """ calculate iteration number """        
+    return (epoch * len(loader)) + batch_idx  
 
 def build_embedding_set(dataset, categories, size):
     xs = []

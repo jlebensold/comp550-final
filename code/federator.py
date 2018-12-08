@@ -1,14 +1,21 @@
 from utils import build_train_loader, build_test_loader
+from utils import iteration_number
 import numpy as np
 import torch
+import torch.nn as nn
+import torch
+import torch.nn.functional as F
+import torch.optim as optim
+from tensorboardX import SummaryWriter
+from datetime import datetime
 
-ROUNDS = 200
+ROUNDS = 10
 CATEGORIES = ['EducationalInstitution', 'Artist']
 TEST_SET_SIZE_PER_CLASS = 1_000
 WORKER_SET_SIZE_PER_CLASS = 2_000
 
 class Federator:
-    def __init__(self, workers, optimizer_factory, model_factory):
+    def __init__(self, workers, optimizer_factory, model_factory, experiment="Undefined"):
         self.workers = workers
         self.model_factory = model_factory
         self.optimizer_factory = optimizer_factory
@@ -16,6 +23,9 @@ class Federator:
         # federator keeps a copy of the model lying around
         # but does no training
         self.model = model_factory()
+        time = datetime.now().strftime("%I_%M%S_{}".format(experiment))
+        self.writer = SummaryWriter('../training_logs/{}/{}'.format("Federator", time))
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def train_rounds(self):
         test_set = build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
@@ -29,9 +39,38 @@ class Federator:
 
             new_model = self.average_worker_models()
 
+
+            # update the model for the federator 
+            self.model = new_model()
+            self.valid_comm_round(test_set, comm_round)
+
+
+
             for worker in self.workers:
                 worker.model = new_model()
                 worker.optimizer = self.optimizer_factory(worker.model)
+
+    def valid_comm_round(self, test_loader, comm_round):
+        self.model.eval()
+        test_loss = 0
+        correct = 0
+        criterion = nn.CrossEntropyLoss()
+        with torch.no_grad():
+            for idx, (data, target) in enumerate(test_loader):
+                data, target = data.to(self.device), target.to(self.device)
+                output = self.model(data)
+                loss = criterion(output, target) 
+                test_loss += loss.item()
+                pred = output.data.max(1, keepdim=True)[1]
+                correct += pred.eq(target.data.view_as(pred)).sum().item()
+                self.writer.add_scalar('valid/loss', loss.data.item(),           
+                        iteration_number(comm_round, test_loader, idx))
+
+        test_loss /= len(test_loader.dataset)
+
+        acc = 100. * correct / len(test_loader.dataset)
+        self.writer.add_scalar('valid/accuracy', acc, (comm_round * len(test_loader)))
+        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct, len(test_loader.dataset), acc))
 
     def average_worker_models(self):
         acc = {}

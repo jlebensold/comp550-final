@@ -14,7 +14,7 @@ from federator import Federator
 from worker import Worker
 import time
 
-def perform_federated_training(with_replacement=True, classes_per_worker=5, same_initilization=True):
+def perform_federated_training(with_replacement, classes_per_worker, same_initilization):
     def optimizer_factory(model):
         return optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 

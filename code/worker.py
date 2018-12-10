@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+from torchviz import make_dot, make_dot_from_trace
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
@@ -26,10 +28,20 @@ class Worker:
 
         self.model.train()
 
+        # plt
+        # FIXME
+        # plt.imshow(self.model.module.conv1)
+        # plt.imshow(self.model.module.conv1[0].weight)
+
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             output = self.model(data)
+
+            # torchviz models
+            # g = make_dot(output, params=dict(self.model.named_parameters()))
+            # g.render("/tmp/dot-{}-{}.txt".format(self.name, comm_round))
+
             loss = criterion(output, target)
             loss.backward()
             self.optimizer.step()

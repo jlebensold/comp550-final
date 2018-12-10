@@ -10,10 +10,10 @@ from tensorboardX import SummaryWriter
 from datetime import datetime
 import threading
 
-ROUNDS = 10
+ROUNDS = 20
 CATEGORIES = ['EducationalInstitution', 'Artist', 'Company', 'MeanOfTransportation', 'OfficeHolder']
 TEST_SET_SIZE_PER_CLASS = 1_000
-WORKER_SET_SIZE_PER_CLASS = 2_500
+WORKER_SET_SIZE_PER_CLASS = 5_000
 
 class Federator:
     def __init__(self, workers, optimizer_factory, model_factory, experiment="Undefined"):

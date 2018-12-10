@@ -22,23 +22,18 @@ def perform_federated_training(with_replacement, classes_per_worker, same_initil
 
     def model_factory():
         return torch.nn.DataParallel(CharacterLevelCNN(), [0,1,2,3]).cuda()
-    model1 = model_factory()
-    model2 = model_factory()
-    model3 = model_factory()
+        return CharacterLevelCNN().cuda()
 
-    # lets maintain the same initialization state for all models:
-    if same_initilization:
-        model2.load_state_dict(model1.state_dict())
-        model3.load_state_dict(model1.state_dict())
     experiment= "wr.{}_cpw.{}_init.{}".format(with_replacement, classes_per_worker, same_initilization)
-    workers = [
-            Worker(name="Jane", experiment=experiment, model=model1, optimizer=optimizer_factory(model1)),
-            Worker(name="Sally",  experiment=experiment, model=model2, optimizer=optimizer_factory(model2)),
-            Worker(name="Bob", experiment=experiment,  model=model3, optimizer=optimizer_factory(model3))
-            ]
+    def new_worker(name):
+        return Worker(name=name, train_categories=CATEGORIES, 
+                      experiment=experiment, 
+                      model_factory=model_factory, 
+                      optimizer_factory=optimizer_factory)
 
 
-
+    NUM_WORKERS = 10
+    workers = [new_worker("W{}".format(wid)) for wid in np.arange(0,NUM_WORKERS)]
 
     federator = Federator(workers=workers, 
                          optimizer_factory=optimizer_factory, 

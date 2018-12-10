@@ -25,33 +25,33 @@ class Federator:
         self.writer = SummaryWriter('../training_logs/{}/{}/{}'.format(time,experiment,"Federator"))
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        self.test_set, _ = build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
+
     def train_rounds(self, with_replacement, classes_per_worker, same_initilization):
-        test_set, indexes= build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
 
         for comm_round in np.arange(0, ROUNDS):
             exclude_ids = []
             for idx, worker in enumerate(self.workers):
-                train_categories = np.random.choice(CATEGORIES, classes_per_worker, replace=False)
-                train_loader, indexes = build_train_loader(train_categories, WORKER_SET_SIZE_PER_CLASS, exclude_ids)
+                train_loader, indexes = build_train_loader(worker.train_categories, WORKER_SET_SIZE_PER_CLASS, exclude_ids)
                 worker.train_communication_round(train_loader, comm_round)
 
 #                torch.save(worker.model.state_dict(), "{}/{}_{}.{}".format(MODEL_DIR,self.experiment,worker.name,comm_round)) 
-                worker.valid_comm_round(test_set, comm_round)
+                worker.valid_comm_round(self.test_set, comm_round)
 
                 if not with_replacement:
                     exclude_ids = np.concatenate([exclude_ids, indexes])
 
-            new_model = self.average_worker_models()
+            averaged_weights  = self.average_worker_models()
 
-            # update the model for the federator 
-            self.model = new_model()
-            self.valid_comm_round(test_set, comm_round)
+            with torch.no_grad():
+                # update the model for the federator 
+                self.model.module.update_weights(averaged_weights)
 
+                federator_weights = self.model.state_dict()
+                self.valid_comm_round(self.test_set, comm_round)
 
-
-            for worker in self.workers:
-                worker.model = new_model()
-                worker.optimizer = self.optimizer_factory(worker.model)
+                for worker in self.workers:
+                    worker.model.load_state_dict(federator_weights)
 
     def valid_comm_round(self, test_loader, comm_round):
         self.model.eval()
@@ -73,7 +73,7 @@ class Federator:
 
         acc = 100. * correct / len(test_loader.dataset)
         self.writer.add_scalar('valid/accuracy', acc, (comm_round * len(test_loader)))
-        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct, len(test_loader.dataset), acc))
+        print('\nFederator Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct, len(test_loader.dataset), acc))
 
     def average_worker_models(self):
         acc = {}
@@ -89,9 +89,4 @@ class Federator:
             averaged_weights[key] = torch.nn.Parameter(averaged)
 
 
-        def new_model_factory():
-            with torch.no_grad():
-                self.model.module.update_weights(averaged_weights)
-#                self.model.update_weights(averaged_weights)
-            return self.model
-        return new_model_factory
+        return averaged_weights

@@ -8,10 +8,8 @@ from torch.autograd import Variable
 from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
 
-# for development, we arbitrarily limit the size of our dataset
-DEFAULT_COUNT_FILTER = 2000
-DEFAULT_CATEGORIES = list(['Company', 'EducationalInstitution', 'Artist'])
-DL_ARGS = {'batch_size': 128, 'shuffle': True, 'num_workers': 1 }
+from constants import *
+DL_ARGS = {'batch_size': 64, 'shuffle': True }
 
 def save_struct(filename, struct):
     file = open(filename,'wb')
@@ -52,16 +50,16 @@ def data_from_pickle():
     categories = list(counts.keys())
     return dbpedia, categories
 
-def build_test_loader(test_categories=DEFAULT_CATEGORIES, size=DEFAULT_COUNT_FILTER):
+def build_test_loader(test_categories, size):
     data, categories = data_from_pickle()
     xs_test, y_test, indexes = build_embedding_set(data['test'], test_categories, size)
-    dataset_test = CharacterDataset(xs_test, y_test, all_labels=categories)
+    dataset_test = CharacterDataset(xs_test, y_test, all_labels=CATEGORIES)
     return torch.utils.data.DataLoader(dataset=dataset_test, **DL_ARGS), indexes
 
-def build_train_loader(train_categories=DEFAULT_CATEGORIES, size=DEFAULT_COUNT_FILTER, exclude_ids=[]):
+def build_train_loader(train_categories, size, exclude_ids=[]):
     data, categories = data_from_pickle()
     xs_train, y_train, indexes = build_embedding_set(data['train'], train_categories, size, exclude_ids)
-    dataset_train = CharacterDataset(xs_train, y_train, all_labels=categories)
+    dataset_train = CharacterDataset(xs_train, y_train, all_labels=CATEGORIES)
     return torch.utils.data.DataLoader(dataset=dataset_train, **DL_ARGS), indexes
 
 

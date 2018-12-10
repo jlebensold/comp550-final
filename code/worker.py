@@ -10,20 +10,20 @@ from tensorboardX import SummaryWriter
 from datetime import datetime
 
 class Worker:
-    def __init__(self, name, model, optimizer, experiment="Undefined"):
+    def __init__(self, name, model_factory, optimizer_factory, train_categories, experiment="Undefined"):
         self.name = name
-        self.optimizer = optimizer
-        self.model = model
+        self.model = model_factory()
+        self.optimizer = optimizer_factory(self.model)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.current_model_weights = {}
         time = datetime.now().strftime("%I_%M%S_{}".format(experiment))
         self.writer = SummaryWriter('../training_logs/{}/{}'.format(self.name, time))
+        self.train_categories = train_categories
 
     def train_communication_round(self, train_loader, comm_round):
         self.store_model_weights()
-        total_loss = 0
-        total_size = 0
+#        print("store...", self.current_model_weights['conv2.0.weight'])
         criterion = nn.CrossEntropyLoss()
 
         self.model.train()
@@ -36,10 +36,10 @@ class Worker:
             loss = criterion(output, target)
             loss.backward()
             self.optimizer.step()
-            self.writer.add_scalar('train/loss', loss.data.item(), 
-                    iteration_number(comm_round, train_loader, batch_idx))
+            self.writer.add_scalar('train/loss', loss.data.item(),  iteration_number(comm_round, train_loader, batch_idx))
             if batch_idx % 10 == 0:
-                print('Train Comm Round: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                print('{}: Train Comm Round: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    self.name,
                     comm_round,
                     batch_idx * len(data),
                     len(train_loader.dataset),
@@ -50,17 +50,16 @@ class Worker:
 
     def store_model_weights(self):
         for name, param in self.model.named_parameters():
-            # TODO: check if this constraint is required:
-            if param.requires_grad:
-                self.current_model_weights[name] = param.data.detach()
+            self.current_model_weights[name] = param.clone()
 
 
     def update_params_delta(self):
         """ subtract the current model parameters from the updated model parameters"""
-        for name, param in self.model.named_parameters():
-            if param.requires_grad:
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
                 if name in self.current_model_weights.keys():
-                   self.current_model_weights[name] =  param.data - self.current_model_weights[name]
+                       self.current_model_weights[name] =  param - self.current_model_weights[name]
+#        print("delta...", self.current_model_weights['conv2.0.weight'])
 
 
     def valid_comm_round(self, test_loader, comm_round):

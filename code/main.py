@@ -14,6 +14,8 @@ from federator import Federator
 from worker import Worker
 import time
 
+from constants import *
+
 def perform_federated_training(with_replacement, classes_per_worker, same_initilization):
     def optimizer_factory(model):
         return optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
@@ -28,11 +30,11 @@ def perform_federated_training(with_replacement, classes_per_worker, same_initil
     if same_initilization:
         model2.load_state_dict(model1.state_dict())
         model3.load_state_dict(model1.state_dict())
-    experiment= "wr={}_cpw={}_init={}".format(with_replacement, classes_per_worker, same_initilization)
+    experiment= "wr.{}_cpw.{}_init.{}".format(with_replacement, classes_per_worker, same_initilization)
     workers = [
-            Worker(name="Jane", experiment=experiment, cuda_num=0, model=model1, optimizer=optimizer_factory(model1)),
-            Worker(name="Sally",  experiment=experiment, cuda_num=0, model=model2, optimizer=optimizer_factory(model2)),
-            Worker(name="Bob", experiment=experiment,  cuda_num=0, model=model3, optimizer=optimizer_factory(model3))
+            Worker(name="Jane", experiment=experiment, model=model1, optimizer=optimizer_factory(model1)),
+            Worker(name="Sally",  experiment=experiment, model=model2, optimizer=optimizer_factory(model2)),
+            Worker(name="Bob", experiment=experiment,  model=model3, optimizer=optimizer_factory(model3))
             ]
 
 

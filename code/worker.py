@@ -10,11 +10,11 @@ from tensorboardX import SummaryWriter
 from datetime import datetime
 
 class Worker:
-    def __init__(self, name, model, optimizer, cuda_num="0", experiment="Undefined"):
+    def __init__(self, name, model, optimizer, experiment="Undefined"):
         self.name = name
         self.optimizer = optimizer
         self.model = model
-        self.device = torch.device("cuda:{}".format(cuda_num) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.current_model_weights = {}
         time = datetime.now().strftime("%I_%M%S_{}".format(experiment))
@@ -28,19 +28,10 @@ class Worker:
 
         self.model.train()
 
-        # plt
-        # FIXME
-        # plt.imshow(self.model.module.conv1)
-        # plt.imshow(self.model.module.conv1[0].weight)
-
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             output = self.model(data)
-
-            # torchviz models
-            # g = make_dot(output, params=dict(self.model.named_parameters()))
-            # g.render("/tmp/dot-{}-{}.txt".format(self.name, comm_round))
 
             loss = criterion(output, target)
             loss.backward()

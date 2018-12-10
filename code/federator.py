@@ -9,28 +9,24 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 from datetime import datetime
 import threading
-
-ROUNDS = 20
-CATEGORIES = ['EducationalInstitution', 'Artist', 'Company', 'MeanOfTransportation', 'OfficeHolder']
-TEST_SET_SIZE_PER_CLASS = 1_000
-WORKER_SET_SIZE_PER_CLASS = 5_000
+from constants import *
 
 class Federator:
     def __init__(self, workers, optimizer_factory, model_factory, experiment="Undefined"):
         self.workers = workers
         self.model_factory = model_factory
         self.optimizer_factory = optimizer_factory
+        self.experiment=experiment
 
         # federator keeps a copy of the model lying around
         # but does no training
         self.model = model_factory()
-        time = datetime.now().strftime("%I_%M%S_{}".format(experiment))
-        self.writer = SummaryWriter('../training_logs/{}/{}'.format("Federator", time))
+        time = datetime.now().strftime("%b_%d_%I_%M%S")
+        self.writer = SummaryWriter('../training_logs/{}/{}/{}'.format(time,experiment,"Federator"))
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def train_rounds(self, with_replacement, classes_per_worker, same_initilization):
         test_set, indexes= build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
-
 
         for comm_round in np.arange(0, ROUNDS):
             exclude_ids = []
@@ -38,6 +34,8 @@ class Federator:
                 train_categories = np.random.choice(CATEGORIES, classes_per_worker, replace=False)
                 train_loader, indexes = build_train_loader(train_categories, WORKER_SET_SIZE_PER_CLASS, exclude_ids)
                 worker.train_communication_round(train_loader, comm_round)
+
+#                torch.save(worker.model.state_dict(), "{}/{}_{}.{}".format(MODEL_DIR,self.experiment,worker.name,comm_round)) 
                 worker.valid_comm_round(test_set, comm_round)
 
                 if not with_replacement:
@@ -94,5 +92,6 @@ class Federator:
         def new_model_factory():
             with torch.no_grad():
                 self.model.module.update_weights(averaged_weights)
+#                self.model.update_weights(averaged_weights)
             return self.model
         return new_model_factory

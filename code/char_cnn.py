@@ -12,6 +12,9 @@ class CharacterLevelCNN(nn.Module):
 
     def update_weights(self, averaged_weights):
         """ here we initialize the weights from a custom dictionary """
+        print("updating weights")
+        print(self.conv1[0].weight)
+        print(averaged_weights['module.conv1.0.weight'])
         self.conv1[0].weight += averaged_weights['module.conv1.0.weight']
         self.conv1[0].bias += averaged_weights['module.conv1.0.bias']
         self.conv2[0].weight += averaged_weights['module.conv2.0.weight']

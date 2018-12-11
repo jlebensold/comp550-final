@@ -35,7 +35,7 @@ class Worker:
             loss = criterion(output, target)
             loss.backward()
             self.optimizer.step()
-            self.writer.add_scalar('train_loss', loss.data.item(),  iteration_number(comm_round, train_loader, batch_idx))
+            self.writer.add_scalar('training_loss', loss.data.item(),  iteration_number(comm_round, train_loader, batch_idx))
             if batch_idx % 10 == 0:
                 print('{}: Train Comm Round: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     self.name,

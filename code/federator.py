@@ -27,7 +27,7 @@ class Federator:
 
         self.test_set, _ = build_test_loader(test_categories=CATEGORIES, size=TEST_SET_SIZE_PER_CLASS)
 
-    def train_rounds(self, with_replacement, classes_per_worker, same_initilization):
+    def train_rounds(self, with_replacement=True):
 
         for comm_round in np.arange(0, ROUNDS):
             exclude_ids = []
@@ -35,7 +35,6 @@ class Federator:
                 train_loader, indexes = build_train_loader(worker.train_categories, WORKER_SET_SIZE_PER_CLASS, exclude_ids)
                 worker.train_communication_round(train_loader, comm_round)
 
-#                torch.save(worker.model.state_dict(), "{}/{}_{}.{}".format(MODEL_DIR,self.experiment,worker.name,comm_round)) 
                 worker.valid_comm_round(self.test_set, comm_round)
 
                 if not with_replacement:
@@ -52,6 +51,12 @@ class Federator:
 
                 for worker in self.workers:
                     worker.model.load_state_dict(federator_weights)
+        self.save_model_weights()
+
+    def save_model_weights(self):
+        torch.save(self.model.state_dict(), "{}/{}_{}".format(MODEL_DIR,self.experiment,'Federator')) 
+        for worker in self.workers:
+            torch.save(worker.model.state_dict(), "{}/{}_{}".format(MODEL_DIR,self.experiment,worker.name)) 
 
     def valid_comm_round(self, test_loader, comm_round):
         self.model.eval()
@@ -66,13 +71,13 @@ class Federator:
                 test_loss += loss.item()
                 pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(target.data.view_as(pred)).sum().item()
-                self.writer.add_scalar('valid/loss', loss.data.item(),           
+                self.writer.add_scalar('validation_loss', loss.data.item(),           
                         iteration_number(comm_round, test_loader, idx))
 
         test_loss /= len(test_loader.dataset)
 
         acc = 100. * correct / len(test_loader.dataset)
-        self.writer.add_scalar('valid/accuracy', acc, (comm_round * len(test_loader)))
+        self.writer.add_scalar('validation_accuracy', acc, (comm_round * len(test_loader)))
         print('\nFederator Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct, len(test_loader.dataset), acc))
 
     def average_worker_models(self):

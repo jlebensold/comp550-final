@@ -1,7 +1,7 @@
 ROUNDS = 20
 CATEGORIES = ['EducationalInstitution', 'Artist', 'Company', 'MeanOfTransportation', 'OfficeHolder']
 TEST_SET_SIZE_PER_CLASS = 1000
-WORKER_SET_SIZE_PER_CLASS = 15_000
+WORKER_SET_SIZE_PER_CLASS = 4_000
 
 
 

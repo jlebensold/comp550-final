@@ -17,13 +17,12 @@ class Worker:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.current_model_weights = {}
-        time = datetime.now().strftime("%I_%M%S_{}".format(experiment))
-        self.writer = SummaryWriter('../training_logs/{}/{}'.format(self.name, time))
+        time = datetime.now().strftime("%b_%d_%I_%M%S")
+        self.writer = SummaryWriter('../training_logs/{}/{}/{}'.format(time,experiment,self.name))
         self.train_categories = train_categories
 
     def train_communication_round(self, train_loader, comm_round):
         self.store_model_weights()
-#        print("store...", self.current_model_weights['conv2.0.weight'])
         criterion = nn.CrossEntropyLoss()
 
         self.model.train()
@@ -36,7 +35,7 @@ class Worker:
             loss = criterion(output, target)
             loss.backward()
             self.optimizer.step()
-            self.writer.add_scalar('train/loss', loss.data.item(),  iteration_number(comm_round, train_loader, batch_idx))
+            self.writer.add_scalar('train_loss', loss.data.item(),  iteration_number(comm_round, train_loader, batch_idx))
             if batch_idx % 10 == 0:
                 print('{}: Train Comm Round: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     self.name,
@@ -59,7 +58,6 @@ class Worker:
             for name, param in self.model.named_parameters():
                 if name in self.current_model_weights.keys():
                        self.current_model_weights[name] =  param - self.current_model_weights[name]
-#        print("delta...", self.current_model_weights['conv2.0.weight'])
 
 
     def valid_comm_round(self, test_loader, comm_round):
@@ -75,11 +73,11 @@ class Worker:
                 test_loss += loss.item()
                 pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(target.data.view_as(pred)).sum().item()
-                self.writer.add_scalar('valid/loss', loss.data.item(),           
+                self.writer.add_scalar('val_loss', loss.data.item(),           
                         iteration_number(comm_round, test_loader, idx))
 
         test_loss /= len(test_loader.dataset)
 
         acc = 100. * correct / len(test_loader.dataset)
-        self.writer.add_scalar('valid/accuracy', acc, (comm_round * len(test_loader)))
+        self.writer.add_scalar('val_acc', acc, (comm_round * len(test_loader)))
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct, len(test_loader.dataset), acc))

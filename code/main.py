@@ -22,18 +22,30 @@ def perform_federated_training(with_replacement, classes_per_worker, same_initil
 
     def model_factory():
         return torch.nn.DataParallel(CharacterLevelCNN(), [0,1,2,3]).cuda()
-        return CharacterLevelCNN().cuda()
+        #return CharacterLevelCNN().cuda()
 
+    worker_categories = [
+        np.take(CATEGORIES,[0,1,2]),
+        np.take(CATEGORIES,[0,1,3]),
+        np.take(CATEGORIES,[0,1,4]),
+        np.take(CATEGORIES,[0,2,3]),
+        np.take(CATEGORIES,[0,2,4]),
+        np.take(CATEGORIES,[0,3,4]),
+        np.take(CATEGORIES,[1,2,3]),
+        np.take(CATEGORIES,[1,3,4]),
+        np.take(CATEGORIES,[2,3,4]),
+        np.take(CATEGORIES,[2,1,4]),
+    ]
     experiment= "wr.{}_cpw.{}_init.{}".format(with_replacement, classes_per_worker, same_initilization)
-    def new_worker(name):
-        return Worker(name=name, train_categories=CATEGORIES, 
+    def new_worker(idx):
+        return Worker(name="W{}".format(idx), train_categories=worker_categories[idx],
                       experiment=experiment, 
                       model_factory=model_factory, 
                       optimizer_factory=optimizer_factory)
 
 
     NUM_WORKERS = 10
-    workers = [new_worker("W{}".format(wid)) for wid in np.arange(0,NUM_WORKERS)]
+    workers = [new_worker(wid) for wid in np.arange(0,NUM_WORKERS)]
 
     federator = Federator(workers=workers, 
                          optimizer_factory=optimizer_factory, 

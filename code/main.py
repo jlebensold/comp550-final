@@ -49,23 +49,23 @@ WORKER_EXPERIMENTS = [
     ],
 
 ]
-def new_worker(idx):
-    return Worker(name="W{}".format(idx), train_categories=worker_data[idx],
-                  experiment=experiment, 
-                  model_factory=model_factory, 
-                  optimizer_factory=optimizer_factory)
+
 def optimizer_factory(model):
     return optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
 def model_factory():
     return torch.nn.DataParallel(CharacterLevelCNN(), [0,1,2,3]).cuda()
 
+def new_worker(worker_data, idx, experiment):
+    return Worker(name="W{}".format(idx), train_categories=worker_data[idx],
+                  experiment=experiment, 
+                  model_factory=model_factory, 
+                  optimizer_factory=optimizer_factory)
 
 def run_experiment(worker_data, worker_experiment_num):
     experiment = "w_exp={}".format(worker_experiment_num)
 
-
-    workers = [new_worker(wid) for wid in np.arange(0,len(worker_data))]
+    workers = [new_worker(worker_data, wid, experiment) for wid in np.arange(0,len(worker_data))]
 
     federator = Federator(workers=workers, 
                          optimizer_factory=optimizer_factory, 

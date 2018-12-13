@@ -4,8 +4,8 @@ Group Number: 19
 -------------------------------------------------
 Team Members
 -------------------------------------------------
-Jonathan Maloney-Lebensold (260825605)
 Amir El Bawab (260645260)
+Jonathan Maloney-Lebensold (260825605)
 
 
 -------------------------------------------------
@@ -38,7 +38,7 @@ Python 3.6
 Code Files
 -------------------------------------------------
 - character_dataset.py
-    - Preprocess the dataset
+    - PyTorch dataloader for transforming SPARQL data into vectors
 - char_cnn.py
     - Defines and initializes the Convolutional Neural Network model
 - constants.py
@@ -55,10 +55,6 @@ Code Files
 - worker.py
     - The client model responsible for training on raw data and communicating
     the weights with the federator
-- simple_net.py
-    - DELETE
-- torch_harness.py
-    - DELETE
 
 -------------------------------------------------
 Notes

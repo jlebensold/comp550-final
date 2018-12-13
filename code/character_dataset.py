@@ -6,7 +6,6 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data.dataset import Dataset
 
-
 EMBEDDING_MAP = list("""abcdefghijklmnopqrstuvwxyz0123456789,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}""")
 def preprocess_abstract(text, mat_width=1014):
     num_rows = len(EMBEDDING_MAP)
@@ -30,7 +29,6 @@ class CharacterDataset(Dataset):
     def __init__(self, data, labels=[], transform=None, all_labels=[]):
         self.data = data
         self.labels = np.asarray([all_labels.index(lbl) for lbl in labels])
-        self.transform = transform
 
     def __getitem__(self, index):
         single_label = 999
@@ -38,7 +36,6 @@ class CharacterDataset(Dataset):
             single_label = self.labels[index]
 
         result = preprocess_abstract(self.data[index])
-        #result = self.transform(abstract)
         return (torch.from_numpy(result).float(), single_label)
 
 

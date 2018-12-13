@@ -64,3 +64,5 @@ The entry point is `main.py`. Different command-line arguments can be used to
 run the experiments. Please refer to the README.md in the `code/` directory for
 information about executing the experiments.
 
+The training_logs/ folder includes our raw data in Tensorboard format. You can
+review these files by opening them in Tensorboard.

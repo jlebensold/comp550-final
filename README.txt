@@ -38,7 +38,7 @@ Python 3.6
 Code Files
 -------------------------------------------------
 - character_dataset.py
-    - 
+    - Preprocess the dataset
 - char_cnn.py
     - Defines and initializes the Convolutional Neural Network model
 - constants.py

@@ -11,6 +11,9 @@ from datetime import datetime
 
 class Worker:
     def __init__(self, name, model_factory, optimizer_factory, train_categories, experiment="Undefined"):
+        """ The worker encapsulates model creation and simulates a user in the
+        federated context"""
+
         self.name = name
         self.model = model_factory()
         self.optimizer = optimizer_factory(self.model)
@@ -22,6 +25,8 @@ class Worker:
         self.train_categories = train_categories
 
     def train_communication_round(self, train_loader, comm_round):
+        """ Training loop """
+
         self.store_model_weights()
         criterion = nn.CrossEntropyLoss()
 
@@ -48,12 +53,15 @@ class Worker:
         self.update_params_delta()
 
     def store_model_weights(self):
+        """ store the weights for calculating a delta before training begins """
+
         for name, param in self.model.named_parameters():
             self.current_model_weights[name] = param.clone()
 
 
     def update_params_delta(self):
         """ subtract the current model parameters from the updated model parameters"""
+
         with torch.no_grad():
             for name, param in self.model.named_parameters():
                 if name in self.current_model_weights.keys():
@@ -61,6 +69,7 @@ class Worker:
 
 
     def valid_comm_round(self, test_loader, comm_round):
+        """ Evaluate model performance for a given communication round """
         self.model.eval()
         test_loss = 0
         correct = 0
@@ -69,11 +78,11 @@ class Worker:
             for idx, (data, target) in enumerate(test_loader):
                 data, target = data.to(self.device), target.to(self.device)
                 output = self.model(data)
-                loss = criterion(output, target) 
+                loss = criterion(output, target)
                 test_loss += loss.item()
                 pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(target.data.view_as(pred)).sum().item()
-                self.writer.add_scalar('val_loss', loss.data.item(),           
+                self.writer.add_scalar('val_loss', loss.data.item(),
                         iteration_number(comm_round, test_loader, idx))
 
         test_loss /= len(test_loader.dataset)

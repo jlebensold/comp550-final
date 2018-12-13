@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 """
 Original network described in
-
 Network from https://github.com/1991viet/Character-level-cnn-pytorch
 (MIT License)
 @author: Viet Nguyen <nhviet1009@gmail.com>
+
 """
 import torch.nn as nn
 import torch
 class CharacterLevelCNN(nn.Module):
 
     def update_weights(self, weights):
-        """ here we initialize the weights from a custom dictionary """
-#        print("updating weights")
-#        print(weights['conv1.0.weight'])
+        """ here we update the weights from a custom dictionary """
         self.conv1[0].weight += weights['module.conv1.0.weight']
         self.conv1[0].bias += weights['module.conv1.0.bias']
         self.conv2[0].weight += weights['module.conv2.0.weight']

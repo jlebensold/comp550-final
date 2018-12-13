@@ -13,6 +13,9 @@ from constants import *
 
 class Federator:
     def __init__(self, workers, optimizer_factory, model_factory, experiment="Undefined"):
+        """ The Federator dispatches training tasks to each worker, simulating a
+        server in the FederatedAveraging setting """
+
         self.workers = workers
         self.model_factory = model_factory
         self.optimizer_factory = optimizer_factory
@@ -54,11 +57,16 @@ class Federator:
         self.save_model_weights()
 
     def save_model_weights(self):
+        """ Save a copy of the model parameters for future evaluation on cheap
+        hardware """
+
         torch.save(self.model.state_dict(), "{}/{}_{}".format(MODEL_DIR,self.experiment,'Federator')) 
         for worker in self.workers:
             torch.save(worker.model.state_dict(), "{}/{}_{}".format(MODEL_DIR,self.experiment,worker.name)) 
 
     def valid_comm_round(self, test_loader, comm_round):
+        """ Evaluate model performance for a given communication round """
+
         self.model.eval()
         test_loss = 0
         correct = 0

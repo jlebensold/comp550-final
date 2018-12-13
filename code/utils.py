@@ -45,7 +45,7 @@ def build_embedding_set(dataset, categories, size, exclude_ids=[]):
     return xs, ys, indexes
 
 def data_from_pickle():
-    dbpedia = load_struct('data/train_test.pickle')
+    dbpedia = load_struct('../data/train_test.pickle')
     counts = Counter([ rec['category'] for rec in dbpedia['train']])
     categories = list(counts.keys())
     return dbpedia, categories

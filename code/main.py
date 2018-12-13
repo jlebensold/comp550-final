@@ -58,28 +58,29 @@ def model_factory():
 
 def new_worker(worker_data, idx, experiment):
     return Worker(name="W{}".format(idx), train_categories=worker_data[idx],
-                  experiment=experiment, 
-                  model_factory=model_factory, 
+                  experiment=experiment,
+                  model_factory=model_factory,
                   optimizer_factory=optimizer_factory)
 
-def run_experiment(worker_data, worker_experiment_num):
+def run_experiment(worker_data, worker_experiment_num, with_replacement=True):
     experiment = "w_exp={}".format(worker_experiment_num)
 
     workers = [new_worker(worker_data, wid, experiment) for wid in np.arange(0,len(worker_data))]
 
-    federator = Federator(workers=workers, 
-                         optimizer_factory=optimizer_factory, 
+    federator = Federator(workers=workers,
+                         optimizer_factory=optimizer_factory,
                          model_factory=model_factory,
-                         experiment=experiment)
+                         experiment=experiment,
+                         with_replacement=with_replacement)
     federator.train_rounds()
 
-def perform_all_experiments():
+def perform_all_experiments(with_replacement=True):
     for idx, worker_data in enumerate(WORKER_EXPERIMENTS):
-        run_experiment(worker_data, idx)
+        run_experiment(worker_data, idx, with_replacement)
 
-def perform_federated_experiment(worker_experiment_num=None):
+def perform_federated_experiment(worker_experiment_num=None, with_replacement=True):
     worker_data = WORKER_EXPERIMENTS[int(worker_experiment_num)]
-    run_experiment(worker_data, worker_experiment_num)
+    run_experiment(worker_data, worker_experiment_num, with_replacement)
 
 if __name__ == '__main__':
     fire.Fire()
